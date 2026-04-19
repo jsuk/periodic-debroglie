@@ -99,18 +99,22 @@ function renderInfo() {
 // ---------- HiDPI canvas setup ----------
 // Backing store = CSS size × devicePixelRatio so lines stay sharp on retina / 4K
 // displays.  Logical (CSS) dimensions are cached on the element as _W / _H so
-// the render code keeps working in CSS pixels.
+// the render code keeps working in CSS pixels. Returns true if anything changed.
 function setupHiDPI(cv) {
   const dpr = window.devicePixelRatio || 1;
   const rect = cv.getBoundingClientRect();
   const w = Math.max(1, rect.width);
   const h = Math.max(1, rect.height);
-  cv.width  = Math.round(w * dpr);
-  cv.height = Math.round(h * dpr);
+  const newW = Math.round(w * dpr);
+  const newH = Math.round(h * dpr);
+  const changed = cv.width !== newW || cv.height !== newH || cv._dpr !== dpr;
+  if (changed) {
+    cv.width  = newW;
+    cv.height = newH;
+  }
   const ctx = cv.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);  // draw in CSS pixels
-  cv._W = w;
-  cv._H = h;
+  cv._W = w; cv._H = h; cv._dpr = dpr;
   return ctx;
 }
 
@@ -184,7 +188,8 @@ function renderOrbits() {
 
     // orbit label
     orbCtx.fillStyle = "rgba(200,210,230,0.55)";
-    orbCtx.font = "11px ui-sans-serif, system-ui";
+    orbCtx.font = '13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+    orbCtx.textBaseline = "alphabetic";
     orbCtx.fillText(`n=${n}`, cx + r + 6, cy + 3);
   }
 }
@@ -255,7 +260,8 @@ function renderSpectrum() {
   // axis decorations — decade ticks
   specCtx.strokeStyle = "rgba(200,210,230,0.12)";
   specCtx.fillStyle = "rgba(180,190,210,0.6)";
-  specCtx.font = "10px ui-sans-serif, system-ui";
+  specCtx.font = '12px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+  specCtx.textBaseline = "alphabetic";
   specCtx.lineWidth = 1;
   for (let e = -3; e <= 3; e++) {
     const xKeV = Math.pow(10, e);
@@ -332,17 +338,31 @@ function renderSpectrum() {
   }
 }
 
-// ---------- resize: re-setup backing stores and redraw ----------
-let _resizeTimer = 0;
+// ---------- resize: ResizeObserver catches any layout change (window resize,
+// font load, grid reflow, dev tools open, DPR change from moving between
+// monitors, etc). Window 'resize' alone misses most of these.
+const ro = new ResizeObserver(() => {
+  orbCtx  = setupHiDPI(orbCv);
+  specCtx = setupHiDPI(specCv);
+  renderSpectrum();               // orbits redraw every frame anyway
+});
+ro.observe(orbCv);
+ro.observe(specCv);
+
+// DPR can change without a size change (zoom, monitor switch) — poll cheaply.
 window.addEventListener("resize", () => {
-  clearTimeout(_resizeTimer);
-  _resizeTimer = setTimeout(() => {
+  orbCtx  = setupHiDPI(orbCv);
+  specCtx = setupHiDPI(specCv);
+  renderSpectrum();
+});
+// Font loading can trigger canvas text reflow; redraw once fonts settle.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
     orbCtx  = setupHiDPI(orbCv);
     specCtx = setupHiDPI(specCv);
-    renderOrbits();
     renderSpectrum();
-  }, 80);
-});
+  });
+}
 
 // ---------- init ----------
 select(current.z);
