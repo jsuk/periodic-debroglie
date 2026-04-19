@@ -37,11 +37,28 @@ MARKERS.forEach(m => {
 // ---------- selection / info ----------
 let current = BY_Z[92];  // Uranium default — showcases both Bohr X-rays and γ lines
 
+// highest principal quantum number occupied in the neutral ground-state atom
+function outerShell(Z) {
+  if (Z <= 2)  return 1;
+  if (Z <= 10) return 2;
+  if (Z <= 18) return 3;
+  if (Z <= 36) return 4;
+  if (Z <= 54) return 5;
+  if (Z <= 86) return 6;
+  return 7;
+}
+
 function select(z) {
   current = BY_Z[z];
   document.querySelectorAll(".cell.sel").forEach(c => c.classList.remove("sel"));
   const cell = document.querySelector(`.cell[data-z="${z}"]`);
   if (cell) cell.classList.add("sel");
+
+  // auto-adjust orbit count to the element's outermost occupied shell
+  const n = outerShell(current.z);
+  nSlider.value = n;
+  nVal.textContent = n;
+
   renderInfo();
   renderOrbits();
   renderSpectrum();
@@ -175,6 +192,42 @@ function xAxis(E_keV, W) {
   return Math.max(0, Math.min(1, t)) * W;
 }
 
+// Map photon energy to a perceptual colour.
+// Visible band 380–780 nm uses Bruton's wavelength-to-RGB;
+// IR fades to dark red, UV→violet, X-ray→blue-white, γ→pale cyan-white.
+function energyColor(E_keV, alpha = 1) {
+  const E_eV = E_keV * 1000;
+  const lam  = 1240 / E_eV;           // nm
+  let r, g, b;
+
+  if (lam >= 380 && lam <= 780) {
+    if      (lam < 440) { r = -(lam - 440) / 60; g = 0;                   b = 1; }
+    else if (lam < 490) { r = 0;                  g = (lam - 440) / 50;   b = 1; }
+    else if (lam < 510) { r = 0;                  g = 1;                  b = -(lam - 510) / 20; }
+    else if (lam < 580) { r = (lam - 510) / 70;   g = 1;                  b = 0; }
+    else if (lam < 645) { r = 1;                  g = -(lam - 645) / 65;  b = 0; }
+    else                { r = 1;                  g = 0;                  b = 0; }
+    // dim the extreme violet/red ends to match eye response
+    let f = 1;
+    if      (lam > 700) f = 0.3 + 0.7 * (780 - lam) / 80;
+    else if (lam < 420) f = 0.3 + 0.7 * (lam - 380) / 40;
+    r *= f; g *= f; b *= f;
+  } else if (lam > 780) {            // IR → dark red
+    const t = Math.min(1, 780 / lam);
+    r = 0.55 * t; g = 0.05 * t; b = 0.05 * t;
+  } else if (E_eV < 100) {           // near-UV: violet → indigo
+    const t = (E_eV - 3.26) / (100 - 3.26);       // 0..1
+    r = 0.55 - 0.25 * t; g = 0.0 + 0.35 * t; b = 1.0;
+  } else {                           // X-ray → γ: indigo-white → pale cyan-white
+    const t = Math.min(1, (Math.log10(E_eV) - 2) / 5); // 100 eV..10 MeV
+    r = 0.55 + 0.35 * t;
+    g = 0.75 + 0.20 * t;
+    b = 1.0 - 0.1 * t;
+  }
+  const to255 = v => Math.round(255 * Math.max(0, Math.min(1, v)));
+  return `rgba(${to255(r)},${to255(g)},${to255(b)},${alpha})`;
+}
+
 function renderSpectrum() {
   const W = specCv.width, H2 = specCv.height;
   specCtx.clearRect(0, 0, W, H2);
@@ -216,37 +269,47 @@ function renderSpectrum() {
     }
   }
 
-  // draw Bohr lines
+  // draw Bohr lines, colour = photon energy
   const baseY = H2 - 20;
   const topY = 30;
   const maxW = Math.max(...lines.map(l => l.w));
   for (const l of lines) {
     const x = xAxis(l.E_keV, W);
     const h = (l.w / maxW) * (baseY - topY) * 0.9;
-    specCtx.strokeStyle = `rgba(110,160,255,${0.4 + 0.5 * (l.w/maxW)})`;
-    specCtx.lineWidth = 1.4;
+    const a = 0.55 + 0.45 * (l.w / maxW);
+    specCtx.strokeStyle = energyColor(l.E_keV, a);
+    specCtx.lineWidth = 1.6;
     specCtx.beginPath();
     specCtx.moveTo(x, baseY);
     specCtx.lineTo(x, baseY - h);
     specCtx.stroke();
     if (l.nf === 1 && l.ni <= 4) {
-      specCtx.fillStyle = "rgba(150,190,255,0.85)";
+      specCtx.fillStyle = energyColor(l.E_keV, 0.9);
       specCtx.fillText(`${l.ni}→1`, x + 2, baseY - h - 2);
     }
   }
 
-  // ---- gamma lines ----
+  // ---- gamma lines: coloured by energy, thicker, with marker dot ----
   if (current.gamma && current.gamma.length) {
     for (const g of current.gamma) {
       const x = xAxis(g, W);
-      specCtx.strokeStyle = "#ff5a5f";
-      specCtx.lineWidth = 2;
+      const col = energyColor(g, 1);
+      specCtx.strokeStyle = col;
+      specCtx.lineWidth = 2.6;
       specCtx.beginPath();
       specCtx.moveTo(x, baseY);
       specCtx.lineTo(x, topY);
       specCtx.stroke();
+      // red-outlined marker dot at top to tag as nuclear γ
+      specCtx.beginPath();
+      specCtx.arc(x, topY - 4, 3.2, 0, 2 * Math.PI);
+      specCtx.fillStyle = col;
+      specCtx.fill();
+      specCtx.strokeStyle = "#ff5a5f";
+      specCtx.lineWidth = 1.2;
+      specCtx.stroke();
       specCtx.fillStyle = "#ff8a8f";
-      specCtx.fillText(`${g} keV`, x + 3, topY + 10);
+      specCtx.fillText(`${g} keV`, x + 4, topY + 10);
     }
   }
 }

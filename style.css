@@ -86,6 +86,6 @@ canvas { width: 100%; height: auto; display: block; background: #070a10; border-
 #spec-legend { margin-top: .4rem; font-size: .8rem; color: #8b95a7; display: flex; gap: 14px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .dot-bohr  { background: #6ea0ff; }
-.dot-gamma { background: #ff5a5f; }
+.dot-gamma { background: #aac8ff; border: 1.5px solid #ff5a5f; width: 9px; height: 9px; box-sizing: border-box; }
 
 footer { margin-top: 2rem; color: #6b7483; }
