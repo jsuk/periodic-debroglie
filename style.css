@@ -78,7 +78,9 @@ main { display: grid; grid-template-columns: minmax(760px, 1fr) 560px; gap: 1.6r
 .panel { background: #11141b; border: 1px solid #222a38; border-radius: 6px; padding: .8rem 1rem 1rem; }
 .panel h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 500; color: #b6c0d1; }
 
-canvas { width: 100%; height: auto; display: block; background: #070a10; border-radius: 4px; }
+canvas { width: 100%; display: block; background: #070a10; border-radius: 4px; }
+#orbits   { aspect-ratio: 1 / 1; }
+#spectrum { aspect-ratio: 2 / 1; }
 
 .controls { margin-top: .5rem; display: flex; align-items: center; gap: .6rem; font-size: .85rem; color: #aab3c2; }
 .controls input { flex: 1; }

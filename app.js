@@ -96,9 +96,27 @@ function renderInfo() {
   `;
 }
 
+// ---------- HiDPI canvas setup ----------
+// Backing store = CSS size × devicePixelRatio so lines stay sharp on retina / 4K
+// displays.  Logical (CSS) dimensions are cached on the element as _W / _H so
+// the render code keeps working in CSS pixels.
+function setupHiDPI(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = cv.getBoundingClientRect();
+  const w = Math.max(1, rect.width);
+  const h = Math.max(1, rect.height);
+  cv.width  = Math.round(w * dpr);
+  cv.height = Math.round(h * dpr);
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);  // draw in CSS pixels
+  cv._W = w;
+  cv._H = h;
+  return ctx;
+}
+
 // ---------- de Broglie orbits ----------
 const orbCv = document.getElementById("orbits");
-const orbCtx = orbCv.getContext("2d");
+let   orbCtx = setupHiDPI(orbCv);
 const nSlider = document.getElementById("n-slider");
 const nVal = document.getElementById("n-val");
 
@@ -108,7 +126,7 @@ nSlider.addEventListener("input", () => {
 });
 
 function renderOrbits() {
-  const W = orbCv.width, H2 = orbCv.height;
+  const W = orbCv._W, H2 = orbCv._H;
   const cx = W / 2, cy = H2 / 2;
   const nMax = +nSlider.value;
   orbCtx.clearRect(0, 0, W, H2);
@@ -180,7 +198,7 @@ requestAnimationFrame(animate);
 
 // ---------- spectrum ----------
 const specCv = document.getElementById("spectrum");
-const specCtx = specCv.getContext("2d");
+let   specCtx = setupHiDPI(specCv);
 
 // log axis: 1 eV .. 2 MeV  -> 1e-3 keV .. 2e3 keV
 const E_MIN_KEV = 1e-3;
@@ -229,7 +247,7 @@ function energyColor(E_keV, alpha = 1) {
 }
 
 function renderSpectrum() {
-  const W = specCv.width, H2 = specCv.height;
+  const W = specCv._W, H2 = specCv._H;
   specCtx.clearRect(0, 0, W, H2);
   specCtx.fillStyle = "#070a10";
   specCtx.fillRect(0, 0, W, H2);
@@ -313,6 +331,18 @@ function renderSpectrum() {
     }
   }
 }
+
+// ---------- resize: re-setup backing stores and redraw ----------
+let _resizeTimer = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    orbCtx  = setupHiDPI(orbCv);
+    specCtx = setupHiDPI(specCv);
+    renderOrbits();
+    renderSpectrum();
+  }, 80);
+});
 
 // ---------- init ----------
 select(current.z);
