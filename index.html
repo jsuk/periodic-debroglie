@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Periodic Table · de Broglie Model · Radioactive Spectrum</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Periodic Table — de Broglie Matter-Wave Model</h1>
+  <p class="sub">Click an element to view its standing-wave orbital structure and
+     (if radioactive) its characteristic gamma frequency spectrum.</p>
+</header>
+
+<main>
+  <section id="table-wrap">
+    <div id="table"></div>
+    <div id="legend">
+      <span class="sw sw-s"></span> s-block
+      <span class="sw sw-p"></span> p-block
+      <span class="sw sw-d"></span> d-block
+      <span class="sw sw-f"></span> f-block
+      <span class="sw sw-radio"></span> radioactive
+    </div>
+  </section>
+
+  <section id="detail">
+    <div id="info">
+      <h2 id="el-name">—</h2>
+      <div id="el-meta"></div>
+      <div id="el-physics"></div>
+    </div>
+    <div id="viz">
+      <div class="panel">
+        <h3>de Broglie standing waves</h3>
+        <canvas id="orbits" width="520" height="520"></canvas>
+        <div class="controls">
+          <label>orbit n <input id="n-slider" type="range" min="1" max="7" value="3"></label>
+          <span id="n-val">3</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Emission frequency spectrum</h3>
+        <canvas id="spectrum" width="520" height="260"></canvas>
+        <div id="spec-legend">
+          <span class="dot dot-bohr"></span> hydrogenic (Bohr / de Broglie)
+          <span class="dot dot-gamma"></span> nuclear γ lines
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <small>Hydrogenic energies E<sub>n</sub> = −13.6 eV · Z<sub>eff</sub>² / n².
+         Gamma data: abridged from NNDC / LBNL tables.</small>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
