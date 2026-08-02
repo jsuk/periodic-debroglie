@@ -6,14 +6,35 @@ body {
   color: #e6e9ef;
   margin: 0;
   padding: 1.2rem 1.4rem 3rem;
+  /* respect notches in landscape on phones */
+  padding-left:  max(1.4rem, env(safe-area-inset-left));
+  padding-right: max(1.4rem, env(safe-area-inset-right));
+  -webkit-text-size-adjust: 100%;
 }
 
-header h1 { margin: 0 0 0.2rem; font-weight: 600; letter-spacing: .3px; }
-header .sub { margin: 0 0 1.2rem; color: #9aa4b2; font-size: .95rem; }
+/* h1 shrinks with the viewport instead of wrapping into three lines */
+header h1 { margin: 0 0 0.2rem; font-weight: 600; letter-spacing: .3px;
+            font-size: clamp(1.15rem, 3.4vw, 1.9rem); }
+header .sub { margin: 0 0 1.2rem; color: #9aa4b2;
+              font-size: clamp(.82rem, 1.6vw, .95rem); max-width: 70ch; }
 
 main { display: grid; grid-template-columns: 1fr; gap: 1.4rem; align-items: start; }
+/* grid items default to min-width:auto, which lets wide content (the table,
+   canvases) stretch the page instead of scrolling inside their own box */
+main > *, #detail > *, .split > * { min-width: 0; }
 
 /* ------------- periodic table ------------- */
+
+/* Horizontal pan container: the grid keeps a legible minimum width and the
+   phone scrolls it, rather than the cells collapsing to unreadable slivers. */
+#table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}
 
 #table {
   display: grid;
@@ -21,9 +42,14 @@ main { display: grid; grid-template-columns: 1fr; gap: 1.4rem; align-items: star
   grid-auto-rows: 52px;
   gap: 3px;
   max-width: 1080px;
+  min-width: 820px;          /* ≈45px per cell — the legibility floor */
 }
 
+#table-hint { display: none; margin: .5rem 0 0; font-size: .78rem; color: #6b7483; }
+
 .cell {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   position: relative;
   background: #1a1f2a;
   border: 1px solid #2a3140;
@@ -34,7 +60,12 @@ main { display: grid; grid-template-columns: 1fr; gap: 1.4rem; align-items: star
   color: #dde3ec;
   transition: transform .08s, border-color .15s, background .15s;
 }
-.cell:hover { border-color: #6ea0ff; transform: translateY(-1px); }
+/* hover only where a real pointer exists — touch devices keep :hover stuck */
+@media (hover: hover) {
+  .cell:hover { border-color: #6ea0ff; transform: translateY(-1px); }
+}
+.cell:active { transform: scale(.96); }
+.cell:focus-visible { outline: 2px solid #6ea0ff; outline-offset: 1px; }
 .cell.sel   { border-color: #ffcf55; background: #2a2418; box-shadow: 0 0 0 1px #ffcf55; }
 
 .cell .z   { font-size: 9px; color: #8b95a7; }
@@ -73,10 +104,17 @@ main { display: grid; grid-template-columns: 1fr; gap: 1.4rem; align-items: star
 #detail { display: grid; grid-template-columns: 320px 1fr 1fr; gap: 1rem; align-items: start; }
 #viz    { display: contents; }
 
+/* Rows 2-3 (decay, Standard Model) run the full width; each splits into a
+   wide graphic on the left and a text column on the right. */
+.panel.full { grid-column: 1 / -1; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.2rem; align-items: start; }
+
 @media (max-width: 1100px) {
   #detail { grid-template-columns: 1fr; }
   #viz    { display: block; }
   #viz .panel + .panel { margin-top: 1rem; }
+  .panel.full { grid-column: auto; }
+  .split { grid-template-columns: 1fr; gap: .6rem; }
 }
 #info h2 { margin: 0; font-size: 1.6rem; }
 #el-meta { color: #9aa4b2; margin: .3rem 0 .6rem; font-size: .9rem; }
@@ -89,6 +127,9 @@ main { display: grid; grid-template-columns: 1fr; gap: 1.4rem; align-items: star
 canvas { width: 100%; display: block; background: #070a10; border-radius: 4px; }
 #orbits   { aspect-ratio: 1 / 1; }
 #spectrum { aspect-ratio: 2 / 1; }
+#decay    { aspect-ratio: 5 / 2; }
+#rel      { aspect-ratio: 5 / 2; }
+#geo      { aspect-ratio: 5 / 2; }
 
 .controls { margin-top: .5rem; display: flex; align-items: center; gap: .6rem; font-size: .85rem; color: #aab3c2; }
 .controls input { flex: 1; }
@@ -98,4 +139,167 @@ canvas { width: 100%; display: block; background: #070a10; border-radius: 4px; }
 .dot-bohr  { background: #6ea0ff; }
 .dot-gamma { background: #aac8ff; border: 1.5px solid #ff5a5f; width: 9px; height: 9px; box-sizing: border-box; }
 
+/* ------------- nucleosynthesis note in the info column ------------- */
+
+.origin { margin-top: .9rem; border-top: 1px solid #222a38; padding-top: .7rem; }
+.origin h4 { margin: 0 0 .35rem; font-size: .9rem; font-weight: 600; color: #b6c0d1; }
+.origin p  { margin: 0; color: #aab3c2; font-size: .84rem; line-height: 1.45; }
+.origin .tag {
+  margin-left: .4rem; padding: 1px 7px; border-radius: 10px;
+  font-size: .72rem; font-weight: 500; letter-spacing: .2px;
+  background: #1c2740; color: #8fb4ff; border: 1px solid #2f4470;
+}
+
+/* ------------- decay panel ------------- */
+
+.mode-tag {
+  margin-left: .5rem; padding: 1px 8px; border-radius: 10px;
+  font-size: .74rem; font-weight: 600; vertical-align: middle;
+}
+.mode-chip { padding: 0 6px; border-radius: 8px; font-size: .74rem; font-weight: 600; }
+/* one colour per decay mode, reused by the canvas diagrams */
+.mode-a   { background: #3a2018; color: #ffb27a; border: 1px solid #6b3a24; }
+.mode-b-  { background: #201a3a; color: #c58bff; border: 1px solid #3d2f6b; }
+.mode-b\+ { background: #201a3a; color: #c58bff; border: 1px solid #3d2f6b; }
+.mode-ec  { background: #16283a; color: #6ea0ff; border: 1px solid #26466b; }
+.mode-it  { background: #14322c; color: #5ddfb0; border: 1px solid #235047; }
+.mode-sf  { background: #351820; color: #ff8a8f; border: 1px solid #6b2a34; }
+.tag-geo  { background: #14322c; color: #5ddfb0; border: 1px solid #235047; }
+
+/* the non-relativistic caveat under the Bohr numbers */
+.caveat {
+  border-left: 2px solid #c58bff;
+  padding-left: .6rem;
+  color: #b8a6d8;
+  font-size: .82rem;
+}
+
+#decay-info { font-size: .84rem; color: #cdd4e0; line-height: 1.45; }
+.decay-head { display: flex; align-items: baseline; gap: .7rem; }
+.decay-head .iso { font-size: 1.1rem; font-weight: 700; color: #ffcf55; }
+.eq {
+  display: block; margin: .5rem 0; padding: .4rem .6rem;
+  background: #181d27; border-radius: 4px; color: #aac8ff; font-size: .88rem;
+}
+.branches { list-style: none; margin: .4rem 0; padding: 0; }
+.branches li { margin: .25rem 0; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.quark { margin: .5rem 0 .3rem; }
+.muted { color: #8b95a7; }
+.small { font-size: .8rem; }
+
+/* ------------- Standard Model grid ------------- */
+
+#sm-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.particle {
+  position: relative;
+  border-radius: 5px;
+  padding: 6px 7px 5px;
+  border: 1px solid #2a3140;
+  background: #151a24;
+  color: #6f7889;
+  opacity: .45;
+  transition: opacity .2s, box-shadow .2s, color .2s, background .2s, transform .1s;
+}
+.particle .p-mass   { font-size: 8px; letter-spacing: .2px; }
+.particle .p-sym    { font-size: 20px; font-weight: 700; line-height: 1.1; }
+.particle .p-name   { font-size: 9px; }
+.particle .p-charge { font-size: 8px; margin-top: 1px; }
+
+/* dim base colours per family — full saturation arrives with .on */
+.p-q { border-color: #4a3a1d; }
+.p-l { border-color: #23374f; }
+.p-b { border-color: #3d2f5a; }
+.p-h { border-color: #4a2340; }
+.p-h .p-sym { writing-mode: horizontal-tb; }
+
+.particle.on { opacity: 1; color: #e6e9ef; transform: translateY(-1px); }
+.p-q.on { background: #2a2113; box-shadow: 0 0 0 1px #ffcf55, 0 0 14px rgba(255,207,85,.28); }
+.p-l.on { background: #141f30; box-shadow: 0 0 0 1px #6ea0ff, 0 0 14px rgba(110,160,255,.28); }
+.p-b.on { background: #1e1830; box-shadow: 0 0 0 1px #c58bff, 0 0 14px rgba(197,139,255,.28); }
+.p-h.on { background: #2a1526; box-shadow: 0 0 0 1px #ff7ad0, 0 0 14px rgba(255,122,208,.28); }
+/* neutrinos read as their own colour when active */
+.particle.on[data-pid^="nu"] { box-shadow: 0 0 0 1px #5ddfb0, 0 0 14px rgba(93,223,176,.28); background: #10241f; }
+
+.sm-head {
+  text-align: center; font-size: 10px; color: #6b7483;
+  letter-spacing: .8px; text-transform: uppercase; padding-top: 2px;
+}
+
+#sm-note { font-size: .84rem; color: #cdd4e0; line-height: 1.45; }
+#sm-note p { margin: .3rem 0; }
+
+/* ------------- gravity / geometry panel ------------- */
+
+#geo-info, #rel-info { font-size: .84rem; color: #cdd4e0; line-height: 1.45; }
+#geo-info p, #rel-info p { margin: .45rem 0; }
+#geo-info .eq { text-align: center; color: #5ddfb0; }
+#rel-info .eq { text-align: center; color: #ffcf55; }
+.geo-nums { margin: .7rem 0; border-top: 1px solid #222a38; padding-top: .5rem; }
+.geo-nums li { display: block; margin: .3rem 0; }
+.geo-nums strong { color: #ffcf55; }
+
 footer { margin-top: 2rem; color: #6b7483; }
+footer small { font-size: .78rem; line-height: 1.5; display: block; max-width: 90ch; }
+
+/* =========================================================================
+   Small screens.  Two changes carry most of the weight: the periodic table
+   pans instead of shrinking, and every side-by-side split becomes a stack.
+   ========================================================================= */
+
+@media (max-width: 760px) {
+  body { padding: .9rem .8rem 2.5rem; }
+  main { gap: 1rem; }
+
+  #table-hint { display: block; }
+  #table { min-width: 760px; grid-auto-rows: 46px; }
+  .cell .sy { font-size: 14px; }
+  .cell .nm { display: none; }          /* names are unreadable at this size */
+
+  #legend { gap: 10px; font-size: 11px; }
+
+  #detail { gap: .8rem; }
+  #info h2 { font-size: 1.3rem; }
+  .panel { padding: .7rem .7rem .8rem; }
+  .panel h3 { font-size: .92rem; }
+
+  /* portrait canvases: a 5:2 strip is unreadable at 340 px wide */
+  #decay    { aspect-ratio: 4 / 3; }
+  #rel      { aspect-ratio: 4 / 3; }
+  #geo      { aspect-ratio: 4 / 3; }
+  #spectrum { aspect-ratio: 3 / 2; }
+
+  /* Standard Model: drop the poster layout, flow 3 per row (= 3 generations,
+     then the force carriers).  Beats JS-assigned rows/columns deliberately. */
+  #sm-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  #sm-grid .particle { grid-column: auto !important; grid-row: auto !important; }
+  .sm-head { display: none; }
+  .particle { padding: 5px 6px; }
+  .particle .p-sym { font-size: 17px; }
+
+  .decay-head { flex-wrap: wrap; gap: .3rem .6rem; }
+  .eq { font-size: .8rem; overflow-x: auto; }
+  .branches li { font-size: .82rem; }
+}
+
+/* Very narrow phones — trim one more notch. */
+@media (max-width: 400px) {
+  #table { min-width: 700px; grid-auto-rows: 42px; }
+  #el-physics, #decay-info, #sm-note { font-size: .8rem; }
+}
+
+/* Landscape phone: viewport is short, so cap the tall canvases. */
+@media (max-width: 900px) and (orientation: landscape) {
+  #orbits { aspect-ratio: 4 / 3; }
+  #decay  { aspect-ratio: 2 / 1; }
+  #rel    { aspect-ratio: 2 / 1; }
+  #geo    { aspect-ratio: 2 / 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .particle { transition: none; }
+}
