@@ -119,8 +119,25 @@ T_μν. The drop model is only rough below A ≈ 20, and the panel says so.
 Responsive: on a laptop the panels sit side by side; on a phone everything
 stacks, the periodic table pans horizontally instead of shrinking to
 illegibility, the canvases switch to taller aspect ratios with shortened
-labels, and tapping an element scrolls to the panels. Cells are keyboard
-reachable, and `prefers-reduced-motion` freezes the animation.
+labels, and tapping an element scrolls to the panels.
+`prefers-reduced-motion` freezes the animation.
+
+## Keyboard
+
+The table is a single tab stop (roving `tabindex`, so you don't Tab through
+118 cells). Once focused:
+
+| key | moves |
+|-----|-------|
+| `←` `→` | next element along the row — skipping the gaps, so Be → B |
+| `↑` `↓` | along the column, crossing into the f-block (Ac ↑ La ↑ Y) |
+| `PgUp` `PgDn` | by atomic number, which is not the same as by position |
+| `Home` `End` | ends of the current row |
+| `Ctrl+Home` `Ctrl+End` | hydrogen / oganesson |
+| `Enter` `Space` | select (arrows already select as they move) |
+
+Marked up as a `listbox` of `option`s with `aria-selected`, so the current
+element is announced.
 
 ## Run
 

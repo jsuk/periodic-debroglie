@@ -22,15 +22,20 @@ const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").mat
 // ---------- build periodic table ----------
 const tableEl = document.getElementById("table");
 
+tableEl.setAttribute("role", "listbox");
+tableEl.setAttribute("aria-label", "Periodic table — arrow keys move between elements");
+
 function cellNode(el) {
   const d = document.createElement("div");
   d.className = `cell ${el.block}${el.radio ? " radio" : ""}`;
   d.style.gridRow = el.row;
   d.style.gridColumn = el.col;
   d.dataset.z = el.z;
-  // keyboard- and screen-reader-reachable: the cells are the primary control
-  d.setAttribute("role", "button");
-  d.setAttribute("tabindex", "0");
+  // Roving tabindex: one Tab stop for the whole table (the selected cell), then
+  // the arrow keys drive.  118 sequential tab stops would be unusable.
+  d.setAttribute("role", "option");
+  d.setAttribute("tabindex", "-1");
+  d.setAttribute("aria-selected", "false");
   d.setAttribute("aria-label",
     `${el.nm}, atomic number ${el.z}${el.radio ? ", radioactive" : ""}`);
   d.innerHTML =
@@ -38,13 +43,66 @@ function cellNode(el) {
     `<div class="sy">${el.sy}</div>` +
     `<div class="nm">${el.nm}</div>`;
   d.addEventListener("click", () => select(el.z, true));
-  d.addEventListener("keydown", e => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(el.z, true); }
-  });
+  d.addEventListener("keydown", e => onCellKey(e, el));
   return d;
 }
 
 Object.values(BY_Z).forEach(el => tableEl.appendChild(cellNode(el)));
+
+// ---------- keyboard navigation ----------
+// The table is a sparse 18×9 grid, so "move right" means "next occupied cell
+// along this row", not "column + 1" — otherwise Be→B would stop in the gap.
+const GRID = {};
+Object.values(BY_Z).forEach(el => { GRID[`${el.row},${el.col}`] = el.z; });
+const Z_ORDER = Object.keys(BY_Z).map(Number).sort((a, b) => a - b);
+
+function scan(row, col, dr, dc) {
+  let r = row + dr, c = col + dc;
+  while (r >= 1 && r <= 9 && c >= 1 && c <= 18) {
+    if (GRID[`${r},${c}`]) return GRID[`${r},${c}`];
+    r += dr; c += dc;
+  }
+  return null;
+}
+
+// first / last occupied cell of a row
+function rowEnd(row, fromRight) {
+  for (let i = 0; i < 18; i++) {
+    const c = fromRight ? 18 - i : 1 + i;
+    if (GRID[`${row},${c}`]) return GRID[`${row},${c}`];
+  }
+  return null;
+}
+
+function goTo(z) {
+  if (z == null) return;
+  select(z);
+  const cell = document.querySelector(`.cell[data-z="${z}"]`);
+  if (cell) cell.focus({ preventScroll: false });
+}
+
+function onCellKey(e, el) {
+  const { row, col, z } = el;
+  const step = Z_ORDER.indexOf(z);
+  let target;
+
+  switch (e.key) {
+    case "ArrowRight": target = scan(row, col, 0,  1); break;
+    case "ArrowLeft":  target = scan(row, col, 0, -1); break;
+    case "ArrowDown":  target = scan(row, col, 1,  0); break;
+    case "ArrowUp":    target = scan(row, col, -1, 0); break;
+    // by atomic number, which is not the same as by position
+    case "PageDown":   target = Z_ORDER[Math.min(Z_ORDER.length - 1, step + 1)]; break;
+    case "PageUp":     target = Z_ORDER[Math.max(0, step - 1)]; break;
+    case "Home":       target = e.ctrlKey ? Z_ORDER[0] : rowEnd(row, false); break;
+    case "End":        target = e.ctrlKey ? Z_ORDER[Z_ORDER.length - 1] : rowEnd(row, true); break;
+    case "Enter":
+    case " ":          e.preventDefault(); select(z, true); return;
+    default: return;
+  }
+  e.preventDefault();          // stop the page scrolling under the arrow keys
+  goTo(target);
+}
 
 MARKERS.forEach(m => {
   const d = document.createElement("div");
@@ -77,10 +135,15 @@ function select(z, fromUser = false) {
   current = BY_Z[z];
   document.querySelectorAll(".cell.sel").forEach(c => {
     c.classList.remove("sel");
-    c.setAttribute("aria-pressed", "false");
+    c.setAttribute("aria-selected", "false");
+    c.setAttribute("tabindex", "-1");
   });
   const cell = document.querySelector(`.cell[data-z="${z}"]`);
-  if (cell) { cell.classList.add("sel"); cell.setAttribute("aria-pressed", "true"); }
+  if (cell) {
+    cell.classList.add("sel");
+    cell.setAttribute("aria-selected", "true");
+    cell.setAttribute("tabindex", "0");   // the table's single tab stop
+  }
   if (fromUser && isNarrow()) {
     document.getElementById("detail").scrollIntoView({
       behavior: REDUCED_MOTION ? "auto" : "smooth", block: "start",
