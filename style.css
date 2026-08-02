@@ -258,6 +258,52 @@ canvas { width: 100%; display: block; background: #070a10; border-radius: 4px; }
 footer { margin-top: 2rem; color: #6b7483; }
 footer small { font-size: .78rem; line-height: 1.5; display: block; max-width: 90ch; }
 
+/* ------------- floating element stepper ------------- */
+
+#el-nav {
+  position: fixed;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .5rem;
+  border: 1px solid #2a3140;
+  border-radius: 999px;
+  background: rgba(17, 20, 27, 0.92);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  font-size: .85rem;
+  color: #cdd4e0;
+}
+#el-nav[hidden] { display: none; }
+#el-nav b { font-size: 1rem; color: #ffcf55; }
+#el-nav .muted { font-size: .75rem; }
+
+#el-nav button {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: 1px solid #2a3140;
+  border-radius: 50%;
+  background: #181d27;
+  color: #cdd4e0;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+@media (hover: hover) { #el-nav button:hover { border-color: #6ea0ff; color: #fff; } }
+#el-nav button:active { transform: scale(.92); }
+#el-nav button:focus-visible { outline: 2px solid #6ea0ff; outline-offset: 1px; }
+
+.el-nav-keys { display: flex; gap: 2px; opacity: .7; }
+.el-nav-keys kbd {
+  font: inherit; font-size: .7rem;
+  background: #181d27; border: 1px solid #2a3140; border-radius: 3px;
+  padding: 0 3px; color: #8b95a7;
+}
+
 /* =========================================================================
    Small screens.  Two changes carry most of the weight: the periodic table
    pans instead of shrinking, and every side-by-side split becomes a stack.
@@ -270,6 +316,8 @@ footer small { font-size: .78rem; line-height: 1.5; display: block; max-width: 9
   /* no keyboard on a phone — show the touch hint instead */
   #table-hint .hint-touch { display: inline; }
   #table-hint .hint-keys  { display: none; }
+  .el-nav-keys { display: none; }        /* no arrow keys to advertise */
+  #el-nav { font-size: .8rem; padding: .3rem .4rem; gap: .4rem; }
   #table { min-width: 760px; grid-auto-rows: 46px; }
   .cell .sy { font-size: 14px; }
   .cell .nm { display: none; }          /* names are unreadable at this size */

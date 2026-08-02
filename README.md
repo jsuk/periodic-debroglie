@@ -124,20 +124,28 @@ labels, and tapping an element scrolls to the panels.
 
 ## Keyboard
 
-The table is a single tab stop (roving `tabindex`, so you don't Tab through
-118 cells). Once focused:
+The arrow keys work **anywhere on the page** — you can sit reading the decay
+panel and change element without scrolling back to the table. Navigation never
+moves the viewport: focus is set with `preventScroll`, and only the table's own
+horizontal scroller is adjusted.
 
-| key | moves |
-|-----|-------|
-| `←` `→` | next element along the row — skipping the gaps, so Be → B |
-| `↑` `↓` | along the column, crossing into the f-block (Ac ↑ La ↑ Y) |
-| `PgUp` `PgDn` | by atomic number, which is not the same as by position |
-| `Home` `End` | ends of the current row |
-| `Ctrl+Home` `Ctrl+End` | hydrogen / oganesson |
-| `Enter` `Space` | select (arrows already select as they move) |
+| key | moves | where it works |
+|-----|-------|----------------|
+| `←` `→` | next element along the row — skipping the gaps, so Be → B | anywhere |
+| `↑` `↓` | along the column, crossing into the f-block (Ac ↑ La ↑ Y) | anywhere |
+| `[` `]` | by atomic number, which is not the same as by position | anywhere |
+| `Home` `End` | ends of the current row | table focused |
+| `Ctrl+Home` `Ctrl+End` | hydrogen / oganesson | table focused |
+| `Enter` `Space` | select (arrows already select as they move) | table focused |
 
-Marked up as a `listbox` of `option`s with `aria-selected`, so the current
-element is announced.
+`PgUp`/`PgDn` are deliberately left alone so they still scroll while you read;
+`[` and `]` do atomic-number stepping instead. Typing in the orbit slider keeps
+its own arrow keys.
+
+Once the table scrolls out of view a small stepper appears in the corner
+showing the current element, with `‹ ›` buttons for mouse and touch. The table
+is a single tab stop (roving `tabindex`, so you don't Tab through 118 cells),
+marked up as a `listbox` of `option`s with `aria-selected`.
 
 ## Run
 

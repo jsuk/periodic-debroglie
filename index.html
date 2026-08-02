@@ -25,9 +25,10 @@
     </div>
     <p id="table-hint">
       <span class="hint-touch">swipe the table sideways · tap an element</span>
-      <span class="hint-keys">tab into the table, then <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>
-        to move · <kbd>PgUp</kbd>/<kbd>PgDn</kbd> by atomic number ·
-        <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row</span>
+      <span class="hint-keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move between
+        elements from anywhere on the page — the view stays where you left it ·
+        <kbd>[</kbd><kbd>]</kbd> by atomic number ·
+        <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row when the table has focus</span>
     </p>
     <div id="legend">
       <span class="sw sw-s"></span> s-block
@@ -97,6 +98,15 @@
     </div>
   </section>
 </main>
+
+<!-- Follows you down the page once the table scrolls away: what is selected,
+     and a way to step without going back up. -->
+<div id="el-nav" hidden>
+  <button id="el-prev" type="button" aria-label="Previous element">‹</button>
+  <span id="el-nav-label" aria-live="polite"></span>
+  <button id="el-next" type="button" aria-label="Next element">›</button>
+  <span class="el-nav-keys"><kbd>←</kbd><kbd>→</kbd></span>
+</div>
 
 <footer>
   <small>Hydrogenic energies E<sub>n</sub> = −13.6 eV · Z<sub>eff</sub>² / n².

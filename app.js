@@ -74,11 +74,24 @@ function rowEnd(row, fromRight) {
   return null;
 }
 
+// Keep the cell inside the table's own horizontal scroller without ever
+// scrolling the page — the whole point is that you can drive the table while
+// reading the panels far below it.
+function keepInScroller(cell) {
+  const sc = document.getElementById("table-scroll");
+  if (!sc) return;
+  const c = cell.getBoundingClientRect(), s = sc.getBoundingClientRect();
+  if (c.left < s.left)        sc.scrollLeft -= (s.left - c.left) + 8;
+  else if (c.right > s.right) sc.scrollLeft += (c.right - s.right) + 8;
+}
+
 function goTo(z) {
   if (z == null) return;
   select(z);
   const cell = document.querySelector(`.cell[data-z="${z}"]`);
-  if (cell) cell.focus({ preventScroll: false });
+  if (!cell) return;
+  cell.focus({ preventScroll: true });   // never drag the viewport back up
+  keepInScroller(cell);
 }
 
 function onCellKey(e, el) {
@@ -104,6 +117,33 @@ function onCellKey(e, el) {
   goTo(target);
 }
 
+// Global navigation: the arrows steer the table from anywhere on the page, so
+// you can sit on the decay panel and change element without scrolling back up.
+// PageUp/PageDown/Home/End are deliberately NOT hijacked globally — they still
+// scroll the page while you read; use [ and ] to step by atomic number instead.
+document.addEventListener("keydown", e => {
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t.closest && t.closest(".cell")) return;      // the cell handler owns those
+  // the orbit slider needs its own arrow keys
+  if (t.matches && t.matches("input, textarea, select, button, [contenteditable]")) return;
+
+  const { row, col, z } = current;
+  const step = Z_ORDER.indexOf(z);
+  let target;
+  switch (e.key) {
+    case "ArrowRight": target = scan(row, col, 0,  1); break;
+    case "ArrowLeft":  target = scan(row, col, 0, -1); break;
+    case "ArrowDown":  target = scan(row, col, 1,  0); break;
+    case "ArrowUp":    target = scan(row, col, -1, 0); break;
+    case "]":          target = Z_ORDER[Math.min(Z_ORDER.length - 1, step + 1)]; break;
+    case "[":          target = Z_ORDER[Math.max(0, step - 1)]; break;
+    default: return;
+  }
+  e.preventDefault();
+  goTo(target);
+});
+
 MARKERS.forEach(m => {
   const d = document.createElement("div");
   d.className = "label";
@@ -112,6 +152,24 @@ MARKERS.forEach(m => {
   d.textContent = m.label;
   tableEl.appendChild(d);
 });
+
+// ---------- floating element stepper ----------
+// Visible only while the table itself is off-screen.
+const elNav = document.getElementById("el-nav");
+const elNavLabel = document.getElementById("el-nav-label");
+
+document.getElementById("el-prev").addEventListener("click", () => stepZ(-1));
+document.getElementById("el-next").addEventListener("click", () => stepZ(+1));
+
+function stepZ(d) {
+  const i = Z_ORDER.indexOf(current.z) + d;
+  if (i >= 0 && i < Z_ORDER.length) goTo(Z_ORDER[i]);
+}
+
+new IntersectionObserver(
+  ([entry]) => { elNav.hidden = entry.isIntersecting; },
+  { threshold: 0 }
+).observe(document.getElementById("table-wrap"));
 
 // ---------- selection / info ----------
 let current = BY_Z[92];  // Uranium default — showcases both Bohr X-rays and γ lines
@@ -177,6 +235,8 @@ function mainMode() {
 function renderInfo() {
   document.getElementById("el-name").textContent =
     `${current.sy} — ${current.nm} (Z=${current.z})`;
+  elNavLabel.innerHTML =
+    `<b>${current.sy}</b> ${current.nm} <span class="muted">${current.z}</span>`;
   document.getElementById("el-meta").textContent =
     `atomic mass ${current.mass} u · ${current.block}-block` +
     (current.radio ? " · radioactive" : "");
