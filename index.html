@@ -2,19 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0d12">
 <title>Periodic Table · de Broglie Model · Radioactive Spectrum</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
   <h1>Periodic Table — de Broglie Matter-Wave Model</h1>
-  <p class="sub">Click an element to view its standing-wave orbital structure and
-     (if radioactive) its characteristic gamma frequency spectrum.</p>
+  <p class="sub">Click an element to view its standing-wave orbital structure, its
+     characteristic gamma spectrum, how the nucleus was synthesised, and the
+     Standard-Model process that takes it apart again.</p>
 </header>
 
 <main>
   <section id="table-wrap">
-    <div id="table"></div>
+    <!-- The 18-column grid never shrinks below a legible cell size; on phones it
+         pans horizontally inside this scroller instead of squashing. -->
+    <div id="table-scroll">
+      <div id="table"></div>
+    </div>
+    <p id="table-hint">swipe the table sideways · tap an element</p>
     <div id="legend">
       <span class="sw sw-s"></span> s-block
       <span class="sw sw-p"></span> p-block
@@ -47,13 +56,47 @@
           <span class="dot dot-gamma"></span> red ring marks nuclear γ decay lines.
         </div>
       </div>
+
+      <div class="panel full">
+        <h3>Nuclear decay <span id="decay-mode-tag"></span></h3>
+        <div class="split">
+          <canvas id="decay" width="760" height="380"></canvas>
+          <div id="decay-info"></div>
+        </div>
+      </div>
+
+      <div class="panel full">
+        <h3>Standard Model — the particles doing the work</h3>
+        <div class="split">
+          <div id="sm-grid"></div>
+          <div id="sm-note"></div>
+        </div>
+      </div>
+
+      <div class="panel full">
+        <h3>Special relativity — E = mc² <span id="rel-tag"></span></h3>
+        <div class="split">
+          <canvas id="rel" width="760" height="304"></canvas>
+          <div id="rel-info"></div>
+        </div>
+      </div>
+
+      <div class="panel full">
+        <h3>General relativity — G<sub>μν</sub> = (8πG/c⁴) T<sub>μν</sub>
+            <span class="mode-tag tag-geo">force → geometry</span></h3>
+        <div class="split">
+          <canvas id="geo" width="760" height="380"></canvas>
+          <div id="geo-info"></div>
+        </div>
+      </div>
     </div>
   </section>
 </main>
 
 <footer>
   <small>Hydrogenic energies E<sub>n</sub> = −13.6 eV · Z<sub>eff</sub>² / n².
-         Gamma data: abridged from NNDC / LBNL tables.</small>
+         Gamma, half-life and Q-value data: abridged from NNDC / LBNL tables.
+         Particle masses: PDG. One representative isotope per element — not a decay library.</small>
 </footer>
 
 <script src="data.js"></script>
